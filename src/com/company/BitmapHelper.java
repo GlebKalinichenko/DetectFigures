@@ -2,7 +2,6 @@ package com.company;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,14 +15,15 @@ public class BitmapHelper {
     private static final double G_COEF = 0.59;
     private static final double B_COEF = 0.11;
     private static final double THRESHOLD = 250;
-    private int[][] outherTopLeftMatrix = new int[3][3];
-    private int[][] outherTopRightMatrix = new int[3][3];
-    private int[][] outherBottomRightMatrix = new int[3][3];
-    private int[][] outherBottomLeftMatrix = new int[3][3];
-    private int[][] innerTopLeftMatrix = new int[3][3];
-    private int[][] innerTopRightMatrix = new int[3][3];
-    private int[][] innerBottomLeftMatrix = new int[3][3];
-    private int[][] innerBottomRigthMatrix = new int[3][3];
+    private int[][] outherTopLeftMatrix = new int[2][2];
+    private int[][] outherTopRightMatrix = new int[2][2];
+    private int[][] outherBottomRightMatrix = new int[2][2];
+    private int[][] outherBottomLeftMatrix = new int[2][2];
+    private int[][] innerTopLeftMatrix = new int[2][2];
+    private int[][] innerTopRightMatrix = new int[2][2];
+    private int[][] innerBottomLeftMatrix = new int[2][2];
+    private int[][] innerBottomRigthMatrix = new int[2][2];
+    private int[][] noiseMatrix = new int[3][3];
     List<int[][]> outherMatrix = new ArrayList<>();
     List<int[][]> innerMatrix = new ArrayList<>();
     private int innerAngle = 0;
@@ -50,10 +50,72 @@ public class BitmapHelper {
         return img;
     }
 
+    private int[][] clearNoise(int[][] pixels){
+        boolean isOk = true;
+        int[][] res = new int[3][3];
+
+        for (int i = 0; i < 3; i++){
+            for (int j = 0; j < 3; j++){
+                int curPixel = pixels[i][j];
+                int curNoise = noiseMatrix[i][j];
+
+                if (curNoise == curPixel && isOk)
+                    isOk = true;
+                else
+                    isOk = false;
+            }
+        }
+
+        if (isOk)
+            pixels[1][1] = 1;
+        res = pixels;
+
+        return res;
+    }
+
+    public void analyzeNoise(int[][] pixels){
+        int[][] currentMatrix = new int[3][3];
+
+        initOutherInnerMatrix();
+
+        for (int i = 0; i < IMAGE_WIDTH; i++){
+            for (int j = 0; j < IMAGE_HEIGHT; j++){
+
+                if (!((i - 1 == -1) || (j - 1 == -1) || (i + 1 >= IMAGE_WIDTH) || (j + 1 >= IMAGE_HEIGHT))) {
+                    currentMatrix[0][0] = pixels[i - 1][j - 1];
+                    currentMatrix[0][1] = pixels[i - 1][j];
+                    currentMatrix[0][2] = pixels[i - 1][j + 1];
+
+                    currentMatrix[1][0] = pixels[i][j - 1];
+                    currentMatrix[1][1] = pixels[i][j];
+                    currentMatrix[1][2] = pixels[i][j + 1];
+
+                    currentMatrix[2][0] = pixels[i + 1][j - 1];
+                    currentMatrix[2][1] = pixels[i + 1][j];
+                    currentMatrix[2][2] = pixels[i + 1][j + 1];
+
+                    int[][] refMatrix = clearNoise(currentMatrix);
+
+                    pixels[i - 1][j - 1] = refMatrix[0][0];
+                    pixels[i - 1][j] = refMatrix[0][1];
+                    pixels[i - 1][j + 1] = refMatrix[0][2];
+
+                    pixels[i][j - 1] = refMatrix[1][0];
+                    pixels[i][j] = refMatrix[1][1];
+                    pixels[i][j + 1] = refMatrix[1][2];
+
+                    pixels[i + 1][j - 1] = refMatrix[2][0];
+                    pixels[i + 1][j] = refMatrix[2][1];
+                    pixels[i + 1][j + 1] = refMatrix[2][2];
+                }
+            }
+        }
+    }
+
     private void printMarkers(int[][] pixels){
         for (int i = 0; i < IMAGE_WIDTH; i++){
             for (int j = 0; j < IMAGE_HEIGHT; j++){
-                System.out.print(pixels[i][j]);
+                System.out.print(pixels[j][i]);
             }
             System.out.println();
         }
@@ -142,23 +204,17 @@ public class BitmapHelper {
         outherAngle = 0;
         int[][] currentMatrix = new int[3][3];
 
-        initOutherInnerMatrix();
+        /*initOutherInnerMatrix();*/
 
         for (int i = 0; i < IMAGE_WIDTH; i++){
             for (int j = 0; j < IMAGE_HEIGHT; j++) {
 
                 if (!((i - 1 == -1) || (j - 1 == -1) || (i + 1 >= IMAGE_WIDTH) || (j + 1 >= IMAGE_HEIGHT))) {
-                    currentMatrix[0][0] = pixels[i - 1][j - 1];
-                    currentMatrix[0][1] = pixels[i - 1][j];
-                    currentMatrix[0][2] = pixels[i - 1][j + 1];
+                    currentMatrix[0][0] = pixels[i][j];
+                    currentMatrix[0][1] = pixels[i][j + 1];
 
-                    currentMatrix[1][0] = pixels[i][j - 1];
-                    currentMatrix[1][1] = pixels[i][j];
-                    currentMatrix[1][2] = pixels[i][j + 1];
-
-                    currentMatrix[2][0] = pixels[i + 1][j - 1];
-                    currentMatrix[2][1] = pixels[i + 1][j];
-                    currentMatrix[2][2] = pixels[i + 1][j + 1];
+                    currentMatrix[1][0] = pixels[i + 1][j];
+                    currentMatrix[1][1] = pixels[i + 1][j + 1];
 
                     equalMatrixs(currentMatrix, outherMatrix, TypeAngle.OUTHER_ANGLE);
                     equalMatrixs(currentMatrix, innerMatrix, TypeAngle.INNER_ANGLE);
@@ -166,18 +222,22 @@ public class BitmapHelper {
             }
         }
 
+        Logger.log("Num outher angles = " + String.valueOf(outherAngle));
+        Logger.log("Num inner angles = " + String.valueOf(innerAngle));
 /*        Log.d(LOG_TAG, String.valueOf(outherAngle));
         Log.d(LOG_TAG, String.valueOf(innerAngle));*/
 
         int res = (outherAngle - innerAngle) / 4;
+        Logger.log("Num of objects = " + res);
+
         return res;
     }
 
     private void equalMatrixs(int[][] currentMatrix, List<int[][]> compareMatrix, TypeAngle type) {
         for (int[][] matrix : compareMatrix) {
             boolean isOk = true;
-            for (int i = 0; i < 3; i++){
-                for (int j = 0; j < 3; j++){
+            for (int i = 0; i < 2; i++){
+                for (int j = 0; j < 2; j++){
                     if ((matrix[i][j] == currentMatrix[i][j]) && isOk)
                         isOk = true;
                     else
@@ -198,108 +258,71 @@ public class BitmapHelper {
         //init top left matrix
         outherTopLeftMatrix[0][0] = 1;
         outherTopLeftMatrix[0][1] = 1;
-        outherTopLeftMatrix[0][2] = 1;
 
         outherTopLeftMatrix[1][0] = 1;
         outherTopLeftMatrix[1][1] = 0;
-        outherTopLeftMatrix[1][2] = 0;
-
-        outherTopLeftMatrix[2][0] = 1;
-        outherTopLeftMatrix[2][1] = 0;
-        outherTopLeftMatrix[2][2] = 0;
 
         //init top right matrix
         outherTopRightMatrix[0][0] = 1;
         outherTopRightMatrix[0][1] = 1;
-        outherTopRightMatrix[0][2] = 1;
 
         outherTopRightMatrix[1][0] = 0;
-        outherTopRightMatrix[1][1] = 0;
-        outherTopRightMatrix[1][2] = 1;
-
-        outherTopRightMatrix[2][0] = 0;
-        outherTopRightMatrix[2][1] = 0;
-        outherTopRightMatrix[2][2] = 1;
+        outherTopRightMatrix[1][1] = 1;
 
         //init bottom right matrix
         outherBottomRightMatrix[0][0] = 0;
-        outherBottomRightMatrix[0][1] = 0;
-        outherBottomRightMatrix[0][2] = 1;
+        outherBottomRightMatrix[0][1] = 1;
 
-        outherBottomRightMatrix[1][0] = 0;
-        outherBottomRightMatrix[1][1] = 0;
-        outherBottomRightMatrix[1][2] = 1;
-
-        outherBottomRightMatrix[2][0] = 1;
-        outherBottomRightMatrix[2][1] = 1;
-        outherBottomRightMatrix[2][2] = 1;
+        outherBottomRightMatrix[1][0] = 1;
+        outherBottomRightMatrix[1][1] = 1;
 
         //init bottom left matrix
         outherBottomLeftMatrix[0][0] = 1;
         outherBottomLeftMatrix[0][1] = 0;
-        outherBottomLeftMatrix[0][2] = 0;
-
 
         outherBottomLeftMatrix[1][0] = 1;
-        outherBottomLeftMatrix[1][1] = 0;
-        outherBottomLeftMatrix[1][2] = 0;
-
-        outherBottomLeftMatrix[2][0] = 1;
-        outherBottomLeftMatrix[2][1] = 1;
-        outherBottomLeftMatrix[2][2] = 1;
+        outherBottomLeftMatrix[1][1] = 1;
 
         //init inner top left matrix
         innerTopLeftMatrix[0][0] = 0;
         innerTopLeftMatrix[0][1] = 0;
-        innerTopLeftMatrix[0][2] = 0;
 
         innerTopLeftMatrix[1][0] = 0;
         innerTopLeftMatrix[1][1] = 1;
-        innerTopLeftMatrix[1][2] = 1;
-
-        innerTopLeftMatrix[2][0] = 0;
-        innerTopLeftMatrix[2][1] = 1;
-        innerTopLeftMatrix[2][2] = 1;
 
         //init inner top right matrix
         innerTopRightMatrix[0][0] = 0;
         innerTopRightMatrix[0][1] = 0;
-        innerTopRightMatrix[0][2] = 0;
 
         innerTopRightMatrix[1][0] = 1;
-        innerTopRightMatrix[1][1] = 1;
-        innerTopRightMatrix[1][2] = 0;
-
-        innerTopRightMatrix[0][0] = 1;
-        innerTopRightMatrix[0][0] = 1;
-        innerTopRightMatrix[0][0] = 0;
+        innerTopRightMatrix[1][1] = 0;
 
         //init inner bottom right matrix
         innerBottomRigthMatrix[0][0] = 1;
-        innerBottomRigthMatrix[0][1] = 1;
-        innerBottomRigthMatrix[0][2] = 0;
+        innerBottomRigthMatrix[0][1] = 0;
 
-        innerBottomRigthMatrix[1][0] = 1;
-        innerBottomRigthMatrix[1][1] = 1;
-        innerBottomRigthMatrix[1][2] = 0;
-
-        innerBottomRigthMatrix[2][0] = 0;
-        innerBottomRigthMatrix[2][1] = 0;
-        innerBottomRigthMatrix[2][2] = 0;
+        innerBottomRigthMatrix[1][0] = 0;
+        innerBottomRigthMatrix[1][1] = 0;
 
         //init inner bottom left matrix
         innerBottomLeftMatrix[0][0] = 0;
         innerBottomLeftMatrix[0][1] = 1;
-        innerBottomLeftMatrix[0][2] = 1;
 
         innerBottomLeftMatrix[1][0] = 0;
-        innerBottomLeftMatrix[1][1] = 1;
-        innerBottomLeftMatrix[1][2] = 1;
+        innerBottomLeftMatrix[1][1] = 0;
 
-        innerBottomLeftMatrix[2][0] = 0;
-        innerBottomLeftMatrix[2][1] = 0;
-        innerBottomLeftMatrix[2][2] = 0;
+        //init noise matrix
+        noiseMatrix[0][0] = 1;
+        noiseMatrix[0][1] = 1;
+        noiseMatrix[0][2] = 1;
 
+        noiseMatrix[1][0] = 1;
+        noiseMatrix[1][1] = 0;
+        noiseMatrix[1][2] = 1;
+
+        noiseMatrix[2][0] = 1;
+        noiseMatrix[2][1] = 1;
+        noiseMatrix[2][2] = 1;
 
         //initialize array of masks
         outherMatrix = new ArrayList<>();
