@@ -2,7 +2,6 @@ package com.company;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -53,7 +52,7 @@ public class BitmapHelper {
     private void printMarkers(int[][] pixels){
         for (int i = 0; i < IMAGE_WIDTH; i++){
             for (int j = 0; j < IMAGE_HEIGHT; j++){
-                System.out.print(pixels[i][j]);
+                System.out.print(pixels[j][i]);
             }
             System.out.println();
         }
