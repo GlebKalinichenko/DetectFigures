@@ -8,6 +8,7 @@ public class Main {
 	    BitmapHelper helper = BitmapHelper.getInstance();
         BufferedImage img = helper.getImage("C:\\Users\\Gleb\\IdeaProjects\\DetectFigures\\name.png");
         int[][] binaryPixels = helper.getPixels(img);
+        helper.analyzeNoise(binaryPixels);
         helper.getNumObjects(binaryPixels);
         helper.getMarkers(binaryPixels);
     }

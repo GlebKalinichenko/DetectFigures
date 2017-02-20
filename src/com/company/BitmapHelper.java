@@ -23,6 +23,7 @@ public class BitmapHelper {
     private int[][] innerTopRightMatrix = new int[2][2];
     private int[][] innerBottomLeftMatrix = new int[2][2];
     private int[][] innerBottomRigthMatrix = new int[2][2];
+    private int[][] noiseMatrix = new int[3][3];
     List<int[][]> outherMatrix = new ArrayList<>();
     List<int[][]> innerMatrix = new ArrayList<>();
     private int innerAngle = 0;
@@ -47,6 +48,68 @@ public class BitmapHelper {
         }
 
         return img;
+    }
+
+    private int[][] clearNoise(int[][] pixels){
+        boolean isOk = true;
+        int[][] res = new int[3][3];
+
+        for (int i = 0; i < 3; i++){
+            for (int j = 0; j < 3; j++){
+                int curPixel = pixels[i][j];
+                int curNoise = noiseMatrix[i][j];
+
+                if (curNoise == curPixel && isOk)
+                    isOk = true;
+                else
+                    isOk = false;
+            }
+        }
+
+        if (isOk)
+            pixels[1][1] = 1;
+        res = pixels;
+
+        return res;
+    }
+
+    public void analyzeNoise(int[][] pixels){
+        int[][] currentMatrix = new int[3][3];
+
+        initOutherInnerMatrix();
+
+        for (int i = 0; i < IMAGE_WIDTH; i++){
+            for (int j = 0; j < IMAGE_HEIGHT; j++){
+
+                if (!((i - 1 == -1) || (j - 1 == -1) || (i + 1 >= IMAGE_WIDTH) || (j + 1 >= IMAGE_HEIGHT))) {
+                    currentMatrix[0][0] = pixels[i - 1][j - 1];
+                    currentMatrix[0][1] = pixels[i - 1][j];
+                    currentMatrix[0][2] = pixels[i - 1][j + 1];
+
+                    currentMatrix[1][0] = pixels[i][j - 1];
+                    currentMatrix[1][1] = pixels[i][j];
+                    currentMatrix[1][2] = pixels[i][j + 1];
+
+                    currentMatrix[2][0] = pixels[i + 1][j - 1];
+                    currentMatrix[2][1] = pixels[i + 1][j];
+                    currentMatrix[2][2] = pixels[i + 1][j + 1];
+
+                    int[][] refMatrix = clearNoise(currentMatrix);
+
+                    pixels[i - 1][j - 1] = refMatrix[0][0];
+                    pixels[i - 1][j] = refMatrix[0][1];
+                    pixels[i - 1][j + 1] = refMatrix[0][2];
+
+                    pixels[i][j - 1] = refMatrix[1][0];
+                    pixels[i][j] = refMatrix[1][1];
+                    pixels[i][j + 1] = refMatrix[1][2];
+
+                    pixels[i + 1][j - 1] = refMatrix[2][0];
+                    pixels[i + 1][j] = refMatrix[2][1];
+                    pixels[i + 1][j + 1] = refMatrix[2][2];
+                }
+            }
+        }
     }
 
     private void printMarkers(int[][] pixels){
@@ -141,7 +204,7 @@ public class BitmapHelper {
         outherAngle = 0;
         int[][] currentMatrix = new int[3][3];
 
-        initOutherInnerMatrix();
+        /*initOutherInnerMatrix();*/
 
         for (int i = 0; i < IMAGE_WIDTH; i++){
             for (int j = 0; j < IMAGE_HEIGHT; j++) {
@@ -153,30 +216,20 @@ public class BitmapHelper {
                     currentMatrix[1][0] = pixels[i + 1][j];
                     currentMatrix[1][1] = pixels[i + 1][j + 1];
 
-                    /*currentMatrix[0][0] = pixels[i - 1][j - 1];
-                    currentMatrix[0][1] = pixels[i - 1][j];
-                    currentMatrix[0][2] = pixels[i - 1][j + 1];
-
-                    currentMatrix[1][0] = pixels[i][j - 1];
-                    currentMatrix[1][1] = pixels[i][j];
-                    currentMatrix[1][2] = pixels[i][j + 1];
-
-                    currentMatrix[2][0] = pixels[i + 1][j - 1];
-                    currentMatrix[2][1] = pixels[i + 1][j];
-                    currentMatrix[2][2] = pixels[i + 1][j + 1];*/
-
                     equalMatrixs(currentMatrix, outherMatrix, TypeAngle.OUTHER_ANGLE);
                     equalMatrixs(currentMatrix, innerMatrix, TypeAngle.INNER_ANGLE);
                 }
             }
         }
 
-        Logger.log(String.valueOf(outherAngle));
-        Logger.log(String.valueOf(innerAngle));
+        Logger.log("Num outher angles = " + String.valueOf(outherAngle));
+        Logger.log("Num inner angles = " + String.valueOf(innerAngle));
 /*        Log.d(LOG_TAG, String.valueOf(outherAngle));
         Log.d(LOG_TAG, String.valueOf(innerAngle));*/
 
         int res = (outherAngle - innerAngle) / 4;
+        Logger.log("Num of objects = " + res);
+
         return res;
     }
 
@@ -257,6 +310,19 @@ public class BitmapHelper {
 
         innerBottomLeftMatrix[1][0] = 0;
         innerBottomLeftMatrix[1][1] = 0;
+
+        //init noise matrix
+        noiseMatrix[0][0] = 1;
+        noiseMatrix[0][1] = 1;
+        noiseMatrix[0][2] = 1;
+
+        noiseMatrix[1][0] = 1;
+        noiseMatrix[1][1] = 0;
+        noiseMatrix[1][2] = 1;
+
+        noiseMatrix[2][0] = 1;
+        noiseMatrix[2][1] = 1;
+        noiseMatrix[2][2] = 1;
 
         //initialize array of masks
         outherMatrix = new ArrayList<>();
