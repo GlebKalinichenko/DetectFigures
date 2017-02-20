@@ -172,6 +172,8 @@ public class BitmapHelper {
             }
         }
 
+        Logger.log(String.valueOf(outherAngle));
+        Logger.log(String.valueOf(innerAngle));
 /*        Log.d(LOG_TAG, String.valueOf(outherAngle));
         Log.d(LOG_TAG, String.valueOf(innerAngle));*/
 
